@@ -6,24 +6,17 @@ import community.mingle.app.src.domain.Total.*;
 import community.mingle.app.src.domain.Univ.*;
 import community.mingle.app.src.firebase.FirebaseCloudMessageService;
 import community.mingle.app.src.member.MemberRepository;
-import community.mingle.app.src.post.model.UpdatePostRequest;
-import community.mingle.app.src.post.model.CreatePostRequest;
-import community.mingle.app.src.post.model.CreatePostResponse;
 import community.mingle.app.src.post.model.*;
+import community.mingle.app.utils.JwtService;
 import community.mingle.app.utils.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import community.mingle.app.src.domain.Univ.UnivPost;
-import community.mingle.app.utils.JwtService;
 import org.springframework.transaction.annotation.Transactional;
 
-
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static community.mingle.app.config.BaseResponseStatus.*;
 import static community.mingle.app.src.domain.PostStatus.DELETED;
@@ -43,7 +36,6 @@ public class PostService {
     private final MemberRepository memberRepository;
 
 
-
     /**
      * 3.1 학교 전체 리스트 API
      */
@@ -54,7 +46,6 @@ public class PostService {
         }
         return getUnivAll;
     }
-
 
 
     /**
@@ -84,7 +75,7 @@ public class PostService {
     /**
      * 신고된 게시물 처리
      */
-    public String findReportedPostReason(Long postId, TableType tableType)  {
+    public String findReportedPostReason(Long postId, TableType tableType) {
         List<Report> reportedPostReason = postRepository.findReportedPostReason(postId, tableType);
         int mode = 0;
         int maxCount = 0;
@@ -92,8 +83,7 @@ public class PostService {
         ArrayList<Integer> reportedTypeList = new ArrayList<>();
         if (reportedPostReason == null) {
             return null;
-        }
-        else  {
+        } else {
             reportedPostReason.forEach(report -> reportedTypeList.add(report.getType()));
 //            for (Report r : reportedPostReason) {
 //                    reportedTypeList.add(report.getType());
@@ -116,7 +106,6 @@ public class PostService {
     }
 
 
-
     /**
      * 3.2 홍콩 배스트 게시판 API
      */
@@ -127,8 +116,6 @@ public class PostService {
         }
         return totalPosts;
     }
-
-
 
 
     /**
@@ -196,7 +183,7 @@ public class PostService {
             Long id = postRepository.save(totalPost); // <- 이미지 파일 생성 실패시 글만 세이브되는 상황 방지는 못하지만 postId가 필요하기때문에 여기 있어야함.
             List<String> fileNameList = null;
 
-            if (createPostRequest.getMultipartFile()==null || createPostRequest.getMultipartFile().isEmpty()) { //postman으로 할 시 둘다 충족이 안됨. 앱으로 할때만
+            if (createPostRequest.getMultipartFile() == null || createPostRequest.getMultipartFile().isEmpty()) { //postman으로 할 시 둘다 충족이 안됨. 앱으로 할때만
                 TotalPostImage totalPostImage = TotalPostImage.createTotalPost(totalPost, null); //그래서 isFileAttached = true로 받아들여서 사진생성하려함
                 postRepository.save(totalPostImage); //그래서 에러남 ㅠ
             } else {
@@ -242,7 +229,7 @@ public class PostService {
             Long id = postRepository.save(univPost);
             List<String> fileNameList = null;
 
-            if (createPostRequest.getMultipartFile()== null || createPostRequest.getMultipartFile().isEmpty()) {
+            if (createPostRequest.getMultipartFile() == null || createPostRequest.getMultipartFile().isEmpty()) {
                 UnivPostImage univPostImage = UnivPostImage.createTotalPost(univPost, null);
                 postRepository.save(univPostImage);
             } else {
@@ -265,9 +252,9 @@ public class PostService {
     }
 
 
-
     /**
      * 3.8 카테고리
+     *
      * @return
      */
     public List<PostCategoryResponse> getPostCategory() throws BaseException {
@@ -277,7 +264,7 @@ public class PostService {
             List<PostCategoryResponse> result = postCategory.stream()
                     .map(PostCategoryResponse::new)
                     .collect(Collectors.toList());
-            if (authority.equals(UserRole.USER)||authority.equals(UserRole.FRESHMAN)) {
+            if (authority.equals(UserRole.USER) || authority.equals(UserRole.FRESHMAN)) {
                 result.remove(4); //학생회
                 result.remove(3); //밍글소식
             }
@@ -289,7 +276,6 @@ public class PostService {
             throw new BaseException(DATABASE_ERROR);
         }
     }
-
 
 
     /**
@@ -335,7 +321,7 @@ public class PostService {
         if (totalPost.getStatus().equals(REPORTED)) { //reported 일때만 reason 찾기
             String reportedReason = findReportedPostReason(totalPost.getId(), TableType.TotalPost);
             totalPostResponse = new PostResponse(totalPost, isMyPost, isLiked, isScraped, isBlinded, reportedReason);
-        }else if (totalPost.getStatus().equals(DELETED)) {
+        } else if (totalPost.getStatus().equals(DELETED)) {
             totalPostResponse = new PostResponse(totalPost, isMyPost, isLiked, isScraped, isBlinded, "");
         } else {
             totalPostResponse = new PostResponse(totalPost, isMyPost, isLiked, isScraped, isBlinded);
@@ -413,7 +399,7 @@ public class PostService {
             if (postRepository.checkUnivPostIsScraped(postId, memberIdByJwt)) {
                 isScraped = true;
             }
-            if (postRepository.checkUnivPostIsBlinded(postId, memberIdByJwt)){
+            if (postRepository.checkUnivPostIsBlinded(postId, memberIdByJwt)) {
                 isBlinded = true;
             }
         } catch (Exception e) {
@@ -423,7 +409,7 @@ public class PostService {
         /*** 게시물 신고 추가 */
         PostResponse univPostResponse;
         if (univPost.getStatus().equals(REPORTED)) {
-            String reportedReason = findReportedPostReason(univPost.getId(),TableType.UnivPost);
+            String reportedReason = findReportedPostReason(univPost.getId(), TableType.UnivPost);
             univPostResponse = new PostResponse(univPost, isMyPost, isLiked, isScraped, isBlinded, reportedReason);
         } else if (univPost.getStatus().equals(DELETED)) {
             univPostResponse = new PostResponse(univPost, isMyPost, isLiked, isScraped, isBlinded, "");
@@ -467,7 +453,7 @@ public class PostService {
                         .collect(Collectors.toList());
 
                 //11/25 추가: 삭제된 댓글 표시 안하기 - 대댓글 없는 댓글 그냥 삭제
-                if ((c.getStatus() == PostStatus.INACTIVE ) && CoCommentList.size() == 0) {
+                if ((c.getStatus() == PostStatus.INACTIVE) && CoCommentList.size() == 0) {
                     continue;
                 }
 
@@ -670,8 +656,7 @@ public class PostService {
         TotalPostLike totalPostLike = TotalPostLike.likesTotalPost(totalpost, member);
         if (totalPostLike == null) {
             throw new BaseException(DUPLICATE_LIKE);
-        }
-        else {
+        } else {
             try {
                 //좋아요 생성 - 위에서
                 Long id = postRepository.save(totalPostLike);
@@ -695,17 +680,16 @@ public class PostService {
         }
     }
 
-    public void sendTotalPostNotification(TotalPost totalpost, Member postMember) throws IOException, BaseException{
+    public void sendTotalPostNotification(TotalPost totalpost, Member postMember) throws IOException, BaseException {
         List<TotalPost> recentPost = postRepository.findAllBestTotalPost(totalpost.getId());
         if (recentPost == null) {
             throw new BaseException(DATABASE_ERROR);
-        } else if (recentPost.contains(totalpost) == true) {
+        } else if (recentPost.contains(totalpost)) {
             String title = "전체 게시글";
             String body = "인기 게시물로 지정되었어요";
             fcmService.sendMessageTo(postMember.getFcmToken(), title, body, TableType.TotalPost, totalpost.getId());
         }
     }
-
 
 
     /**
@@ -731,8 +715,7 @@ public class PostService {
         UnivPostLike univPostLike = UnivPostLike.likesUnivPost(univpost, member);
         if (univPostLike == null) {
             throw new BaseException(DUPLICATE_LIKE);
-        }
-        else {
+        } else {
             try {
 //            UnivPostLike univPostLike = UnivPostLike.likesUnivPost(univpost, member);
                 Long id = postRepository.save(univPostLike);
@@ -765,7 +748,7 @@ public class PostService {
         List<UnivPost> recentPost = postRepository.findAllUnivBestPost(postMember, univpost.getId());
         if (recentPost == null) {
             throw new BaseException(DATABASE_ERROR);
-        } else if (recentPost.contains(univpost) == true) {
+        } else if (recentPost.contains(univpost)) {
             String title = "학교 게시글";
             String body = "인기 게시물로 지정되었어요";
             fcmService.sendMessageTo(postMember.getFcmToken(), title, body, TableType.UnivPost, univpost.getId());
@@ -827,8 +810,7 @@ public class PostService {
         TotalPostScrap totalPostScrap = TotalPostScrap.scrapTotalPost(totalpost, member);
         if (totalPostScrap == null) {
             throw new BaseException(DUPLICATE_SCRAP);
-        }
-        else {
+        } else {
             try {
 //            Member member = postRepository.findMemberbyId(memberIdByJwt);
 //                TotalPostScrap totalPostScrap = TotalPostScrap.scrapTotalPost(totalpost, member);
@@ -962,7 +944,7 @@ public class PostService {
      * 학교 게시판 검색 기능
      */
     @Transactional
-    public List<UnivPost> findUnivSearch(String keyword, Long memberId)  throws BaseException {
+    public List<UnivPost> findUnivSearch(String keyword, Long memberId) throws BaseException {
         List<UnivPost> searchUnivPostLists = postRepository.searchUnivPostWithKeyword(keyword, memberId);
         if (searchUnivPostLists.size() == 0) {
             throw new BaseException(POST_NOT_EXIST);
@@ -988,8 +970,7 @@ public class PostService {
         TotalBlind totalBlind = TotalBlind.blindTotalPost(totalpost, member);
         if (totalBlind == null) {
             throw new BaseException(DUPLICATE_BLIND);
-        }
-        else {
+        } else {
             try {
                 Long id = postRepository.saveBlind(totalBlind);
                 return "게시물을 가렸어요.";
@@ -1015,8 +996,7 @@ public class PostService {
         UnivBlind univBlind = UnivBlind.blindUnivPost(univpost, member);
         if (univBlind == null) {
             throw new BaseException(DUPLICATE_BLIND);
-        }
-        else {
+        } else {
             try {
                 Long id = postRepository.saveBlind(univBlind);
                 return "게시물을 가렸어요.";
@@ -1104,7 +1084,7 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-//    public List<NotifiedMemberResponse> listNotifiedMember() {
+    //    public List<NotifiedMemberResponse> listNotifiedMember() {
 //        List<Member> reportedMemberList = postRepository.getReportedMemberList();
 //
 //    }
@@ -1118,6 +1098,7 @@ public class PostService {
         String body = "다른 사용자들의 신고에 의해 글이 삭제되었습니다.";
         fcmService.sendMessageTo(totalPost.getMember().getFcmToken(), title, body, TableType.TotalPost, totalPost.getId());
     }
+
     @Transactional
     public void executeUnivPost(String contentId) throws IOException {
         UnivPost univPost = postRepository.findUnivPostById(parseLong(contentId));
@@ -1128,6 +1109,7 @@ public class PostService {
         String body = "다른 사용자들의 신고에 의해 글이 삭제되었습니다.";
         fcmService.sendMessageTo(univPost.getMember().getFcmToken(), title, body, TableType.UnivPost, univPost.getId());
     }
+
     @Transactional
     public void executeTotalComment(String contentId) throws IOException {
         TotalComment totalComment = postRepository.findTotalCommentById(parseLong(contentId));
@@ -1157,5 +1139,48 @@ public class PostService {
         String title = "밍글 계정 사용 정지 알림";
         String body = "운영 정책 위반 및 유저 신고 누적으로 인해 계정 사용이 정지되었습니다. 자세한 문의사항이 있다면 이메일을 통해 문의바랍니다.";
         fcmService.sendMessageTo(member.getFcmToken(), title, body);
+    }
+
+    public List<TotalPost> findTotalPostsByIdAndMemberId(Long postId, Long memberId) throws BaseException {
+        List<TotalPost> totalPostList = postRepository.findTotalPostsByIdAndMemberId(postId, memberId);
+        if (totalPostList.size() == 0) {
+            throw new BaseException(EMPTY_POSTS_LIST);
+        }
+        return totalPostList;
+    }
+
+    public List<UnivPost> findUnivPostsByIdAndMemberId(Long postId, int univId, Long memberId) throws BaseException {
+        List<UnivPost> getUnivAll = postRepository.findUnivPostsByIdAndMemberId(postId, univId, memberId);
+        if (getUnivAll.size() == 0) {
+            throw new BaseException(EMPTY_POSTS_LIST);
+        }
+        return getUnivAll;
+    }
+
+    public List<PostListDTO> findUnitePostWithMemberLikeCount(Long totalPostId, Long univPostId, Long memberId) throws BaseException {
+        List<TotalPost> totalPosts = postRepository.findTotalPostWithMemberLikeComment(totalPostId, memberId);
+        if (totalPosts.size() == 0) {
+            throw new BaseException(EMPTY_BEST_POSTS);
+        }
+        List<PostListDTO> totalPostDtos = totalPosts.stream()
+                .map(m -> new PostListDTO(m, memberId))
+                .collect(Collectors.toList());
+        Member member = postRepository.findMemberbyId(memberId);
+        if (member == null) {
+            throw new BaseException(DATABASE_ERROR); //무조건 찾아야하는데 못찾을경우 (이미 jwt 에서 검증이 되기때문)
+        }
+        List<UnivPost> univPosts = postRepository.findAllWithMemberLikeCommentCount(member, univPostId);
+        if (univPosts.size() == 0) {
+            throw new BaseException(EMPTY_BEST_POSTS);
+        }
+        List<PostListDTO> univPostDtos = univPosts.stream()
+                .map(p -> new PostListDTO(p, memberId))
+                .collect(Collectors.toList());
+        return Stream.concat(totalPostDtos.stream(), univPostDtos.stream())
+                .sorted(Comparator.comparing(PostListDTO::getCreatedAtDateTime)
+                        .reversed())
+                .collect(Collectors.toList());
+
+
     }
 }
